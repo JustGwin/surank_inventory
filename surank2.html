@@ -1,0 +1,2128 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockFlow — Inventory Management System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        syne: ['Syne', 'sans-serif'],
+                        dm: ['DM Sans', 'sans-serif']
+                    },
+                    colors: {
+                        ink: {
+                            DEFAULT: '#0D0F12',
+                            50: '#f0f1f3',
+                            100: '#d4d7de',
+                            200: '#a8aeba',
+                            300: '#7c8496',
+                            400: '#515a72',
+                            500: '#31394f',
+                            600: '#1e2538',
+                            700: '#141a2c',
+                            800: '#0e1220',
+                            900: '#0D0F12'
+                        },
+                        lime: {
+                            DEFAULT: '#C5F135',
+                            50: '#f7fde0',
+                            500: '#C5F135',
+                            600: '#a8cd1c',
+                            700: '#8aaa10'
+                        },
+                        amber: {
+                            DEFAULT: '#F59E0B',
+                            light: '#FDE68A'
+                        },
+                        rose: {
+                            DEFAULT: '#F43F5E',
+                            light: '#FFE4E6'
+                        },
+                        sky: {
+                            DEFAULT: '#38BDF8',
+                            light: '#E0F2FE'
+                        },
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #0D0F12;
+            color: #e2e4ea;
+        }
+        
+        .font-syne {
+            font-family: 'Syne', sans-serif;
+        }
+        
+         ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        
+         ::-webkit-scrollbar-track {
+            background: #141a2c;
+        }
+        
+         ::-webkit-scrollbar-thumb {
+            background: #31394f;
+            border-radius: 2px;
+        }
+        /* Sidebar */
+        
+        .sidebar {
+            width: 230px;
+            min-height: 100vh;
+            background: #0e1220;
+            border-right: 1px solid #1e2538;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 50;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 18px;
+            border-radius: 8px;
+            margin: 2px 8px;
+            cursor: pointer;
+            transition: all .18s;
+            font-size: 13.5px;
+            color: #7c8496;
+        }
+        
+        .nav-item:hover {
+            background: #1e2538;
+            color: #d4d7de;
+        }
+        
+        .nav-item.active {
+            background: #C5F135;
+            color: #0D0F12;
+            font-weight: 600;
+        }
+        
+        .nav-item.active svg {
+            stroke: #0D0F12;
+        }
+        
+        .nav-icon {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+        /* Main Content */
+        
+        .main {
+            margin-left: 230px;
+            padding: 28px 32px;
+            min-height: 100vh;
+        }
+        
+        .page {
+            display: none;
+        }
+        
+        .page.active {
+            display: block;
+            animation: fadeIn .25s ease;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        /* Cards */
+        
+        .card {
+            background: #141a2c;
+            border: 1px solid #1e2538;
+            border-radius: 12px;
+        }
+        
+        .metric-card {
+            background: #141a2c;
+            border: 1px solid #1e2538;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        /* Table */
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        thead th {
+            font-family: 'Syne', sans-serif;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: #515a72;
+            padding: 12px 16px;
+            border-bottom: 1px solid #1e2538;
+            text-align: left;
+        }
+        
+        tbody tr {
+            border-bottom: 1px solid #141a2c;
+            transition: background .12s;
+        }
+        
+        tbody tr:hover {
+            background: #1e2538;
+        }
+        
+        tbody td {
+            padding: 12px 16px;
+            font-size: 13.5px;
+            color: #a8aeba;
+        }
+        
+        tbody td.bold {
+            color: #e2e4ea;
+            font-weight: 500;
+        }
+        /* Inputs */
+        
+        .input {
+            background: #1e2538;
+            border: 1px solid #31394f;
+            border-radius: 8px;
+            padding: 9px 14px;
+            font-size: 13.5px;
+            color: #e2e4ea;
+            outline: none;
+            transition: border-color .15s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        
+        .input:focus {
+            border-color: #C5F135;
+        }
+        
+        .input::placeholder {
+            color: #515a72;
+        }
+        
+        select.input option {
+            background: #141a2c;
+        }
+        /* Buttons */
+        
+        .btn-primary {
+            background: #C5F135;
+            color: #0D0F12;
+            font-family: 'Syne', sans-serif;
+            font-weight: 700;
+            font-size: 13px;
+            padding: 9px 18px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        
+        .btn-primary:hover {
+            background: #d4fc4a;
+            transform: translateY(-1px);
+        }
+        
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid #31394f;
+            color: #a8aeba;
+            font-size: 13px;
+            padding: 9px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all .15s;
+            font-family: 'DM Sans', sans-serif;
+        }
+        
+        .btn-ghost:hover {
+            border-color: #C5F135;
+            color: #C5F135;
+        }
+        
+        .btn-danger {
+            background: transparent;
+            border: 1px solid #F43F5E44;
+            color: #F43F5E;
+            font-size: 13px;
+            padding: 7px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all .15s;
+        }
+        
+        .btn-danger:hover {
+            background: #F43F5E22;
+        }
+        /* Badge */
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 99px;
+            font-size: 11.5px;
+            font-weight: 600;
+        }
+        
+        .badge-green {
+            background: #C5F13522;
+            color: #C5F135;
+        }
+        
+        .badge-amber {
+            background: #F59E0B22;
+            color: #F59E0B;
+        }
+        
+        .badge-red {
+            background: #F43F5E22;
+            color: #F43F5E;
+        }
+        
+        .badge-sky {
+            background: #38BDF822;
+            color: #38BDF8;
+        }
+        
+        .badge-gray {
+            background: #31394f44;
+            color: #7c8496;
+        }
+        /* Tag chip */
+        
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            background: #1e2538;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #7c8496;
+        }
+        /* Modal */
+        
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(13, 15, 18, .85);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-overlay.open {
+            display: flex;
+        }
+        
+        .modal {
+            background: #141a2c;
+            border: 1px solid #31394f;
+            border-radius: 16px;
+            padding: 28px;
+            width: 500px;
+            max-width: 95vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: fadeIn .2s ease;
+        }
+        
+        .modal-title {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 18px;
+            color: #e2e4ea;
+            margin-bottom: 20px;
+        }
+        /* Alert Bar */
+        
+        .alert-bar {
+            background: #F59E0B18;
+            border: 1px solid #F59E0B44;
+            border-radius: 10px;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            color: #FDE68A;
+        }
+        /* Progress */
+        
+        .progress-track {
+            background: #1e2538;
+            border-radius: 99px;
+            height: 5px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            border-radius: 99px;
+            transition: width .4s;
+        }
+        /* Charts */
+        
+        canvas {
+            display: block;
+        }
+        /* Stat highlight */
+        
+        .stat-num {
+            font-family: 'Syne', sans-serif;
+            font-weight: 800;
+            font-size: 28px;
+            color: #e2e4ea;
+            line-height: 1;
+        }
+        /* Notification dot */
+        
+        .notif-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 99px;
+            background: #F43F5E;
+            position: absolute;
+            top: -2px;
+            right: -2px;
+        }
+        /* Divider */
+        
+        hr.div {
+            border: none;
+            border-top: 1px solid #1e2538;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar flex flex-col">
+        <div class="px-6 py-5 border-b border-ink-700 flex items-center gap-3">
+            <div style="background:#C5F135;border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center">
+                <svg width="14" height="14" fill="none" stroke="#0D0F12" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+            </div>
+            <span class="font-syne font-800 text-sm text-white tracking-wide">StockFlow</span>
+        </div>
+
+        <nav class="flex-1 py-4 overflow-y-auto">
+            <div class="px-4 mb-2 text-xs font-syne font-700 tracking-widest text-ink-300 uppercase">Main</div>
+            <div class="nav-item active" onclick="gotoPage('dashboard',this)">
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>                Dashboard
+            </div>
+            <div class="nav-item" onclick="gotoPage('catalog',this)">
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg> สินค้าคงคลัง
+            </div>
+            <div class="nav-item" onclick="gotoPage('stockin',this)">
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12l7 7 7-7"/></svg> รับสินค้าเข้า
+            </div>
+            <div class="nav-item" onclick="gotoPage('stockout',this)">
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg> เบิกจ่ายสินค้า
+            </div>
+            <div class="nav-item" onclick="gotoPage('adjust',this)">
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> ปรับสต๊อก
+            </div>
+            <div class="px-4 mt-4 mb-2 text-xs font-syne font-700 tracking-widest text-ink-300 uppercase">Management</div>
+            <div class="nav-item" onclick="gotoPage('supplier',this)">
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>                Supplier
+            </div>
+            <div class="nav-item" onclick="gotoPage('reports',this)">
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg> รายงาน
+            </div>
+            <div class="nav-item" onclick="gotoPage('users',this)">
+                <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/><path d="M18 11l2 2 4-4" stroke-width="2"/></svg> สิทธิ์ผู้ใช้
+            </div>
+        </nav>
+
+        <div class="px-4 py-4 border-t border-ink-700">
+            <div class="flex items-center gap-3">
+                <div style="width:32px;height:32px;border-radius:8px;background:#1e2538;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-weight:800;font-size:13px;color:#C5F135">A</div>
+                <div>
+                    <div style="font-size:12.5px;font-weight:600;color:#d4d7de">Admin User</div>
+                    <div style="font-size:11px;color:#515a72">Super Admin</div>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ============ MAIN ============ -->
+    <main class="main">
+
+        <!-- ======== 1. DASHBOARD ======== -->
+        <div id="page-dashboard" class="page active">
+
+            <!-- TOP BAR -->
+            <div class="flex items-center justify-between mb-5">
+                <div>
+                    <div style="font-size:11px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px">ภาพรวมระบบ</div>
+                    <h1 class="font-syne font-800 text-white" style="font-size:22px;line-height:1">StockFlow Dashboard</h1>
+                </div>
+                <div class="flex items-center gap-3">
+                    <!-- Live clock -->
+                    <div style="background:#1e2538;border:1px solid #31394f;border-radius:8px;padding:7px 14px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:#C5F135;letter-spacing:.05em" id="dash-clock">--:--:--</div>
+                    <div class="flex gap-1">
+                        <button id="dbtn-7" class="btn-ghost text-xs" onclick="setDashRange(7,this)" style="padding:7px 12px">7D</button>
+                        <button id="dbtn-30" class="btn-primary text-xs" onclick="setDashRange(30,this)" style="padding:7px 12px">30D</button>
+                        <button id="dbtn-90" class="btn-ghost text-xs" onclick="setDashRange(90,this)" style="padding:7px 12px">90D</button>
+                    </div>
+                    <button class="btn-ghost" onclick="alert('Export PDF')" style="padding:7px 14px;font-size:12px">↓ Export</button>
+                </div>
+            </div>
+
+            <!-- CRITICAL ALERTS STRIP -->
+            <div id="dash-alerts" style="margin-bottom:16px"></div>
+
+            <!-- ── ROW 1: KPI Cards ── -->
+            <div class="grid gap-3 mb-4" style="grid-template-columns:repeat(5,1fr)">
+
+                <!-- Card: Total SKU -->
+                <div class="kpi-card" style="background:#141a2c;border:1px solid #1e2538;border-radius:12px;padding:16px 18px;position:relative;overflow:hidden">
+                    <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle,#C5F13515,transparent 70%);pointer-events:none"></div>
+                    <div style="font-size:10.5px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">SKU ทั้งหมด</div>
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:#e2e4ea;line-height:1">1,284</div>
+                    <div style="font-size:11px;color:#7c8496;margin-top:4px">ใน 8 หมวดหมู่</div>
+                    <div style="margin-top:10px;display:flex;align-items:center;gap:5px">
+                        <span style="font-size:10.5px;color:#C5F135;font-weight:600">▲ +12</span>
+                        <span style="font-size:10.5px;color:#515a72">เดือนนี้</span>
+                    </div>
+                    <canvas id="spark1" width="100" height="28" style="position:absolute;bottom:0;right:0;opacity:.4"></canvas>
+                </div>
+
+                <!-- Card: Inventory Value -->
+                <div class="kpi-card" style="background:#141a2c;border:1px solid #1e2538;border-radius:12px;padding:16px 18px;position:relative;overflow:hidden">
+                    <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle,#38BDF815,transparent 70%);pointer-events:none"></div>
+                    <div style="font-size:10.5px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">มูลค่าคงคลัง</div>
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:#e2e4ea;line-height:1">฿4.2M</div>
+                    <div style="font-size:11px;color:#7c8496;margin-top:4px">ต้นทุนรวม ฿2.8M</div>
+                    <div style="margin-top:10px;display:flex;align-items:center;gap:5px">
+                        <span style="font-size:10.5px;color:#C5F135;font-weight:600">▲ 8.3%</span>
+                        <span style="font-size:10.5px;color:#515a72">vs เดือนที่แล้ว</span>
+                    </div>
+                    <canvas id="spark2" width="100" height="28" style="position:absolute;bottom:0;right:0;opacity:.4"></canvas>
+                </div>
+
+                <!-- Card: Today Orders -->
+                <div class="kpi-card" style="background:#141a2c;border:1px solid #1e2538;border-radius:12px;padding:16px 18px;position:relative;overflow:hidden">
+                    <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle,#C5F13515,transparent 70%);pointer-events:none"></div>
+                    <div style="font-size:10.5px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">ออเดอร์วันนี้</div>
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:#C5F135;line-height:1">37</div>
+                    <div style="font-size:11px;margin-top:4px">
+                        <span style="color:#C5F135">●</span><span style="color:#7c8496"> เสร็จ 29</span>
+                        <span style="color:#515a72;margin:0 4px">·</span>
+                        <span style="color:#F59E0B">●</span><span style="color:#7c8496"> รอ 8</span>
+                    </div>
+                    <div style="margin-top:8px">
+                        <div style="background:#1e2538;border-radius:99px;height:4px;overflow:hidden">
+                            <div style="width:78%;height:100%;background:linear-gradient(90deg,#C5F135,#8aaa10);border-radius:99px"></div>
+                        </div>
+                        <div style="font-size:10px;color:#515a72;margin-top:3px;text-align:right">78% เสร็จแล้ว</div>
+                    </div>
+                </div>
+
+                <!-- Card: Low Stock -->
+                <div class="kpi-card" onclick="gotoPage('catalog',document.querySelector('[onclick*=catalog]'))" style="background:#141a2c;border:1px solid #F59E0B44;border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s"
+                    onmouseover="this.style.borderColor='#F59E0B'" onmouseout="this.style.borderColor='#F59E0B44'">
+                    <div style="position:absolute;top:-10px;right:-10px;width:70px;height:70px;background:radial-gradient(circle,#F59E0B18,transparent 70%);pointer-events:none"></div>
+                    <div style="font-size:10.5px;color:#F59E0B;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">⚡ Low Stock</div>
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:#F59E0B;line-height:1">4</div>
+                    <div style="font-size:11px;color:#7c8496;margin-top:4px">รายการต้องสั่งด่วน</div>
+                    <div style="margin-top:10px;font-size:10.5px;color:#F59E0B;font-weight:600">คลิกดูรายการ →</div>
+                </div>
+
+                <!-- Card: Out of Stock -->
+                <div class="kpi-card" style="background:#141a2c;border:1px solid #F43F5E44;border-radius:12px;padding:16px 18px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='#F43F5E'" onmouseout="this.style.borderColor='#F43F5E44'">
+                    <div style="position:absolute;top:-10px;right:-10px;width:70px;height:70px;background:radial-gradient(circle,#F43F5E18,transparent 70%);pointer-events:none"></div>
+                    <div style="font-size:10.5px;color:#F43F5E;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">⚠ หมดสต๊อก</div>
+                    <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:26px;color:#F43F5E;line-height:1">2</div>
+                    <div style="font-size:11px;color:#7c8496;margin-top:4px">รายการที่สต๊อก = 0</div>
+                    <div style="margin-top:10px;font-size:10.5px;color:#F43F5E;font-weight:600">ต้องสั่งทันที →</div>
+                </div>
+            </div>
+
+            <!-- ── ROW 2: Main Chart + Pending Tasks ── -->
+            <div class="grid gap-3 mb-3" style="grid-template-columns:3fr 1.2fr">
+
+                <!-- Movement Chart -->
+                <div class="card" style="padding:20px">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#e2e4ea">การเคลื่อนไหวสินค้า</div>
+                            <div style="font-size:11px;color:#515a72;margin-top:1px">Stock In vs Stock Out (30 วัน)</div>
+                        </div>
+                        <div class="flex items-center gap-4" style="font-size:11px;color:#7c8496">
+                            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#C5F135;margin-right:4px"></span>Stock In</span>
+                            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#38BDF8;margin-right:4px"></span>Stock Out</span>
+                            <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#F59E0B55;margin-right:4px"></span>ปรับสต๊อก</span>
+                        </div>
+                    </div>
+                    <canvas id="chartMovement" height="130"></canvas>
+                    <!-- Summary below chart -->
+                    <div class="grid gap-0 mt-3" style="grid-template-columns:repeat(3,1fr);border-top:1px solid #1e2538;padding-top:12px">
+                        <div style="text-align:center">
+                            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#C5F135">1,247</div>
+                            <div style="font-size:10.5px;color:#515a72;margin-top:1px">รับเข้า (ชิ้น)</div>
+                        </div>
+                        <div style="text-align:center;border-left:1px solid #1e2538;border-right:1px solid #1e2538">
+                            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#38BDF8">983</div>
+                            <div style="font-size:10.5px;color:#515a72;margin-top:1px">เบิกออก (ชิ้น)</div>
+                        </div>
+                        <div style="text-align:center">
+                            <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#F59E0B">+264</div>
+                            <div style="font-size:10.5px;color:#515a72;margin-top:1px">สต๊อกสุทธิ</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pending Tasks -->
+                <div class="card" style="padding:18px;display:flex;flex-direction:column">
+                    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#e2e4ea;margin-bottom:14px">
+                        รายการรอดำเนินการ
+                        <span style="display:inline-flex;align-items:center;justify-content:center;background:#F43F5E;color:white;font-size:10px;font-weight:800;width:18px;height:18px;border-radius:99px;margin-left:6px;vertical-align:middle">5</span>
+                    </div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:8px">
+                        <div onclick="gotoPage('stockin',document.querySelector('[onclick*=stockin]'))" style="background:#1e2538;border-radius:8px;padding:10px 12px;cursor:pointer;transition:background .15s;border-left:3px solid #C5F135" onmouseover="this.style.background='#263050'"
+                            onmouseout="this.style.background='#1e2538'">
+                            <div style="font-size:12px;font-weight:600;color:#e2e4ea">รับสินค้าที่ค้างรอ</div>
+                            <div style="font-size:11px;color:#515a72;margin-top:2px">GR-20240604 · เมาส์ไร้สาย</div>
+                            <div style="font-size:10px;color:#C5F135;margin-top:4px">คลิกดำเนินการ →</div>
+                        </div>
+                        <div onclick="gotoPage('stockout',document.querySelector('[onclick*=stockout]'))" style="background:#1e2538;border-radius:8px;padding:10px 12px;cursor:pointer;transition:background .15s;border-left:3px solid #F59E0B" onmouseover="this.style.background='#263050'"
+                            onmouseout="this.style.background='#1e2538'">
+                            <div style="font-size:12px;font-weight:600;color:#e2e4ea">อนุมัติใบเบิก</div>
+                            <div style="font-size:11px;color:#515a72;margin-top:2px">SO-2024-0881 · คีย์บอร์ด ×5</div>
+                            <div style="font-size:10px;color:#F59E0B;margin-top:4px">รออนุมัติ →</div>
+                        </div>
+                        <div onclick="gotoPage('adjust',document.querySelector('[onclick*=adjust]'))" style="background:#1e2538;border-radius:8px;padding:10px 12px;cursor:pointer;transition:background .15s;border-left:3px solid #F43F5E" onmouseover="this.style.background='#263050'"
+                            onmouseout="this.style.background='#1e2538'">
+                            <div style="font-size:12px;font-weight:600;color:#e2e4ea">อนุมัติปรับสต๊อก</div>
+                            <div style="font-size:11px;color:#515a72;margin-top:2px">ADJ-0040 · หมึกพิมพ์ -2</div>
+                            <div style="font-size:10px;color:#F43F5E;margin-top:4px">รออนุมัติ →</div>
+                        </div>
+                        <div style="background:#1e2538;border-radius:8px;padding:10px 12px;cursor:pointer;border-left:3px solid #38BDF8">
+                            <div style="font-size:12px;font-weight:600;color:#e2e4ea">PO ใกล้ครบกำหนด</div>
+                            <div style="font-size:11px;color:#515a72;margin-top:2px">Tech Distribution · Net30</div>
+                            <div style="font-size:10px;color:#38BDF8;margin-top:4px">ครบ 12 มิ.ย. → ชำระ</div>
+                        </div>
+                        <div style="background:#1e2538;border-radius:8px;padding:10px 12px;border-left:3px solid #515a72">
+                            <div style="font-size:12px;font-weight:600;color:#e2e4ea">สินค้าใกล้หมดอายุ</div>
+                            <div style="font-size:11px;color:#515a72;margin-top:2px">หมึกพิมพ์ Canon · 08/2025</div>
+                            <div style="font-size:10px;color:#7c8496;margin-top:4px">อีก 65 วัน</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── ROW 3: Inventory Health + Category + Quick Actions ── -->
+            <div class="grid gap-3 mb-3" style="grid-template-columns:1.6fr 1fr 1fr">
+
+                <!-- Inventory Health Gauge -->
+                <div class="card" style="padding:20px">
+                    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#e2e4ea;margin-bottom:14px">สุขภาพสต๊อกรายหมวด</div>
+                    <div style="display:flex;flex-direction:column;gap:10px">
+                        <!-- Category rows -->
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px">
+                                <span style="color:#a8aeba">อุปกรณ์ IT</span>
+                                <span style="color:#C5F135;font-weight:600">87% <span style="color:#515a72;font-weight:400">· 542 SKU</span></span>
+                            </div>
+                            <div style="background:#1e2538;border-radius:99px;height:6px;overflow:hidden;position:relative">
+                                <div style="width:87%;height:100%;background:linear-gradient(90deg,#C5F135,#8aaa10);border-radius:99px;transition:width .5s"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px">
+                                <span style="color:#a8aeba">เครื่องเขียน</span>
+                                <span style="color:#F59E0B;font-weight:600">48% <span style="color:#515a72;font-weight:400">· 318 SKU</span></span>
+                            </div>
+                            <div style="background:#1e2538;border-radius:99px;height:6px;overflow:hidden">
+                                <div style="width:48%;height:100%;background:linear-gradient(90deg,#F59E0B,#d97706);border-radius:99px"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px">
+                                <span style="color:#a8aeba">เฟอร์นิเจอร์</span>
+                                <span style="color:#38BDF8;font-weight:600">72% <span style="color:#515a72;font-weight:400">· 189 SKU</span></span>
+                            </div>
+                            <div style="background:#1e2538;border-radius:99px;height:6px;overflow:hidden">
+                                <div style="width:72%;height:100%;background:linear-gradient(90deg,#38BDF8,#0284c7);border-radius:99px"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px">
+                                <span style="color:#a8aeba">สินค้าทั่วไป</span>
+                                <span style="color:#F43F5E;font-weight:600">23% <span style="color:#515a72;font-weight:400">· 235 SKU</span></span>
+                            </div>
+                            <div style="background:#1e2538;border-radius:99px;height:6px;overflow:hidden">
+                                <div style="width:23%;height:100%;background:linear-gradient(90deg,#F43F5E,#be123c);border-radius:99px"></div>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:4px">
+                                <span style="color:#a8aeba">วัสดุสิ้นเปลือง</span>
+                                <span style="color:#C5F135;font-weight:600">91% <span style="color:#515a72;font-weight:400">· 142 SKU</span></span>
+                            </div>
+                            <div style="background:#1e2538;border-radius:99px;height:6px;overflow:hidden">
+                                <div style="width:91%;height:100%;background:linear-gradient(90deg,#C5F135,#8aaa10);border-radius:99px"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="margin-top:14px;padding-top:12px;border-top:1px solid #1e2538;display:flex;gap:12px;font-size:10.5px">
+                        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#C5F135;margin-right:4px"></span><span style="color:#7c8496">≥70% ดี</span></span>
+                        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#F59E0B;margin-right:4px"></span><span style="color:#7c8496">40–69% ปานกลาง</span></span>
+                        <span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:#F43F5E;margin-right:4px"></span><span style="color:#7c8496">&lt;40% ต่ำ</span></span>
+                    </div>
+                </div>
+
+                <!-- Category Donut -->
+                <div class="card" style="padding:20px">
+                    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#e2e4ea;margin-bottom:10px">สัดส่วนมูลค่า</div>
+                    <div style="position:relative;display:flex;align-items:center;justify-content:center">
+                        <canvas id="chartCategory" width="160" height="160"></canvas>
+                        <div style="position:absolute;text-align:center;pointer-events:none">
+                            <div style="font-family:'Syne',sans-serif;font-size:18px;font-weight:800;color:#e2e4ea">฿4.2M</div>
+                            <div style="font-size:10px;color:#515a72">รวม</div>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;display:flex;flex-direction:column;gap:5px">
+                        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#7c8496"><span style="display:inline-block;width:6px;height:6px;border-radius:99px;background:#C5F135;margin-right:5px"></span>IT</span><span style="color:#a8aeba;font-weight:600">฿2.4M</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#7c8496"><span style="display:inline-block;width:6px;height:6px;border-radius:99px;background:#38BDF8;margin-right:5px"></span>เฟอร์นิเจอร์</span><span style="color:#a8aeba;font-weight:600">฿980K</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#7c8496"><span style="display:inline-block;width:6px;height:6px;border-radius:99px;background:#F59E0B;margin-right:5px"></span>เครื่องเขียน</span><span style="color:#a8aeba;font-weight:600">฿540K</span></div>
+                        <div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#7c8496"><span style="display:inline-block;width:6px;height:6px;border-radius:99px;background:#515a72;margin-right:5px"></span>อื่นๆ</span><span style="color:#a8aeba;font-weight:600">฿280K</span></div>
+                    </div>
+                </div>
+
+                <!-- Quick Actions + Live Activity -->
+                <div class="card" style="padding:18px;display:flex;flex-direction:column;gap:0">
+                    <div style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#e2e4ea;margin-bottom:12px">Quick Actions</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:14px">
+                        <button onclick="openModal('modal-stockin')" style="background:#C5F13518;border:1px solid #C5F13544;border-radius:8px;padding:10px 6px;cursor:pointer;text-align:center;transition:background .15s;color:#C5F135;font-size:11px;font-family:'Syne',sans-serif;font-weight:700"
+                            onmouseover="this.style.background='#C5F13530'" onmouseout="this.style.background='#C5F13518'">
+            <div style="font-size:18px;margin-bottom:3px">↓</div>รับสินค้า
+          </button>
+                        <button onclick="openModal('modal-stockout')" style="background:#38BDF818;border:1px solid #38BDF844;border-radius:8px;padding:10px 6px;cursor:pointer;text-align:center;transition:background .15s;color:#38BDF8;font-size:11px;font-family:'Syne',sans-serif;font-weight:700"
+                            onmouseover="this.style.background='#38BDF830'" onmouseout="this.style.background='#38BDF818'">
+            <div style="font-size:18px;margin-bottom:3px">↑</div>เบิกสินค้า
+          </button>
+                        <button onclick="openModal('modal-adjust')" style="background:#F59E0B18;border:1px solid #F59E0B44;border-radius:8px;padding:10px 6px;cursor:pointer;text-align:center;transition:background .15s;color:#F59E0B;font-size:11px;font-family:'Syne',sans-serif;font-weight:700"
+                            onmouseover="this.style.background='#F59E0B30'" onmouseout="this.style.background='#F59E0B18'">
+            <div style="font-size:18px;margin-bottom:3px">✎</div>ปรับสต๊อก
+          </button>
+                        <button onclick="openModal('modal-add-product')" style="background:#1e2538;border:1px solid #31394f;border-radius:8px;padding:10px 6px;cursor:pointer;text-align:center;transition:background .15s;color:#a8aeba;font-size:11px;font-family:'Syne',sans-serif;font-weight:700"
+                            onmouseover="this.style.background='#263050'" onmouseout="this.style.background='#1e2538'">
+            <div style="font-size:18px;margin-bottom:3px">+</div>เพิ่มสินค้า
+          </button>
+                    </div>
+
+                    <!-- Live Activity Feed -->
+                    <div style="border-top:1px solid #1e2538;padding-top:12px">
+                        <div style="font-size:11px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:5px">
+                            <span style="display:inline-block;width:6px;height:6px;border-radius:99px;background:#C5F135;animation:blink 1.4s infinite"></span>Live Activity
+                        </div>
+                        <div id="activity-feed" style="display:flex;flex-direction:column;gap:5px;max-height:120px;overflow-y:auto"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── ROW 4: Low Stock Table ── -->
+            <div class="card">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #1e2538">
+                    <div>
+                        <span style="font-family:'Syne',sans-serif;font-weight:700;font-size:13px;color:#e2e4ea">สินค้าที่ต้องสั่งซื้อ</span>
+                        <span style="margin-left:8px;background:#F59E0B22;color:#F59E0B;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:99px">4 รายการ</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="btn-ghost text-xs" onclick="alert('Export Low Stock List')">↓ Export</button>
+                        <button class="btn-ghost text-xs" onclick="gotoPage('catalog',document.querySelector('[onclick*=catalog]'))">ดูทั้งหมด →</button>
+                    </div>
+                </div>
+                <div style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>SKU</th>
+                                <th>ชื่อสินค้า</th>
+                                <th>คงเหลือ / Reorder Pt.</th>
+                                <th style="width:120px">% เหลือ</th>
+                                <th>Supplier</th>
+                                <th>Lead Time</th>
+                                <th>สถานะ</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><span class="tag">P-0042</span></td>
+                                <td class="bold">เมาส์ไร้สาย Logitech MX</td>
+                                <td><span style="color:#F43F5E;font-weight:700">3</span><span style="color:#515a72"> / 20</span></td>
+                                <td>
+                                    <div style="background:#1e2538;border-radius:99px;height:5px;overflow:hidden;margin-bottom:2px">
+                                        <div style="width:15%;height:100%;background:#F43F5E;border-radius:99px"></div>
+                                    </div>
+                                    <span style="font-size:10px;color:#F43F5E">15%</span>
+                                </td>
+                                <td style="font-size:12px;color:#7c8496">Tech Distribution</td>
+                                <td style="font-size:12px;color:#7c8496">3–5 วัน</td>
+                                <td><span class="badge badge-red">⚠ วิกฤต</span></td>
+                                <td><button class="btn-primary text-xs" style="padding:5px 12px;font-size:11px" onclick="openModal('modal-stockin')">สั่งซื้อ</button></td>
+                            </tr>
+                            <tr>
+                                <td><span class="tag">P-0334</span></td>
+                                <td class="bold">สาย HDMI 2m Premium</td>
+                                <td><span style="color:#F43F5E;font-weight:700">1</span><span style="color:#515a72"> / 15</span></td>
+                                <td>
+                                    <div style="background:#1e2538;border-radius:99px;height:5px;overflow:hidden;margin-bottom:2px">
+                                        <div style="width:7%;height:100%;background:#F43F5E;border-radius:99px"></div>
+                                    </div>
+                                    <span style="font-size:10px;color:#F43F5E">7%</span>
+                                </td>
+                                <td style="font-size:12px;color:#7c8496">Tech Distribution</td>
+                                <td style="font-size:12px;color:#7c8496">3–5 วัน</td>
+                                <td><span class="badge badge-red">⚠ วิกฤต</span></td>
+                                <td><button class="btn-primary text-xs" style="padding:5px 12px;font-size:11px" onclick="openModal('modal-stockin')">สั่งซื้อ</button></td>
+                            </tr>
+                            <tr>
+                                <td><span class="tag">P-0108</span></td>
+                                <td class="bold">กระดาษ A4 80gsm (รีม)</td>
+                                <td><span style="color:#F59E0B;font-weight:700">12</span><span style="color:#515a72"> / 50</span></td>
+                                <td>
+                                    <div style="background:#1e2538;border-radius:99px;height:5px;overflow:hidden;margin-bottom:2px">
+                                        <div style="width:24%;height:100%;background:#F59E0B;border-radius:99px"></div>
+                                    </div>
+                                    <span style="font-size:10px;color:#F59E0B">24%</span>
+                                </td>
+                                <td style="font-size:12px;color:#7c8496">Office Supply</td>
+                                <td style="font-size:12px;color:#7c8496">1–2 วัน</td>
+                                <td><span class="badge badge-amber">⚡ ต่ำ</span></td>
+                                <td><button class="btn-ghost text-xs" style="padding:5px 12px;font-size:11px" onclick="openModal('modal-stockin')">สั่งซื้อ</button></td>
+                            </tr>
+                            <tr>
+                                <td><span class="tag">P-0219</span></td>
+                                <td class="bold">หมึกพิมพ์ Canon PG-88</td>
+                                <td><span style="color:#F59E0B;font-weight:700">8</span><span style="color:#515a72"> / 30</span></td>
+                                <td>
+                                    <div style="background:#1e2538;border-radius:99px;height:5px;overflow:hidden;margin-bottom:2px">
+                                        <div style="width:27%;height:100%;background:#F59E0B;border-radius:99px"></div>
+                                    </div>
+                                    <span style="font-size:10px;color:#F59E0B">27%</span>
+                                </td>
+                                <td style="font-size:12px;color:#7c8496">Print & Copy</td>
+                                <td style="font-size:12px;color:#7c8496">2–3 วัน</td>
+                                <td><span class="badge badge-amber">⚡ ต่ำ</span></td>
+                                <td><button class="btn-ghost text-xs" style="padding:5px 12px;font-size:11px" onclick="openModal('modal-stockin')">สั่งซื้อ</button></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- ======== 2. PRODUCT CATALOG ======== -->
+        <div id="page-catalog" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="font-syne font-800 text-2xl text-white">สินค้าคงคลัง</h1>
+                    <p style="font-size:13px;color:#515a72;margin-top:2px">รายการสินค้าทั้งหมด — 1,284 SKU</p>
+                </div>
+                <div class="flex gap-3">
+                    <button class="btn-ghost" onclick="alert('Export CSV')">↓ CSV</button>
+                    <button class="btn-primary" onclick="openModal('modal-add-product')">+ เพิ่มสินค้า</button>
+                </div>
+            </div>
+
+            <!-- Filter Row -->
+            <div class="flex gap-3 mb-5 flex-wrap">
+                <input class="input" style="width:240px" placeholder="🔍  ค้นหา SKU หรือชื่อสินค้า...">
+                <select class="input"><option>ทุกหมวดหมู่</option><option>อุปกรณ์ IT</option><option>เครื่องเขียน</option><option>เฟอร์นิเจอร์</option></select>
+                <select class="input"><option>ทุกสถานะ</option><option>In Stock</option><option>Low Stock</option><option>Out of Stock</option></select>
+                <select class="input"><option>Supplier ทั้งหมด</option><option>Tech Distribution Co.</option><option>Office Supply Ltd.</option></select>
+            </div>
+
+            <div class="card" style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>ชื่อสินค้า</th>
+                            <th>หมวดหมู่</th>
+                            <th>ราคาต้นทุน</th>
+                            <th>ราคาขาย</th>
+                            <th>คงเหลือ</th>
+                            <th>Reorder Pt.</th>
+                            <th>สถานะ</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="tag">P-0001</span></td>
+                            <td class="bold">คีย์บอร์ด Mechanical TKL</td>
+                            <td>อุปกรณ์ IT</td>
+                            <td>฿850</td>
+                            <td>฿1,290</td>
+                            <td><span style="color:#C5F135;font-weight:600">142</span></td>
+                            <td>30</td>
+                            <td><span class="badge badge-green">✓ In Stock</span></td>
+                            <td>
+                                <div class="flex gap-2"><button class="btn-ghost text-xs" onclick="openModal('modal-edit-product')">แก้ไข</button><button class="btn-danger text-xs" onclick="if(confirm('ลบสินค้านี้?'))alert('ลบแล้ว')">ลบ</button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag">P-0042</span></td>
+                            <td class="bold">เมาส์ไร้สาย Logitech MX</td>
+                            <td>อุปกรณ์ IT</td>
+                            <td>฿1,200</td>
+                            <td>฿1,890</td>
+                            <td><span style="color:#F43F5E;font-weight:600">3</span></td>
+                            <td>20</td>
+                            <td><span class="badge badge-red">⚠ วิกฤต</span></td>
+                            <td>
+                                <div class="flex gap-2"><button class="btn-ghost text-xs" onclick="openModal('modal-edit-product')">แก้ไข</button><button class="btn-danger text-xs">ลบ</button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag">P-0108</span></td>
+                            <td class="bold">กระดาษ A4 80gsm (รีม)</td>
+                            <td>เครื่องเขียน</td>
+                            <td>฿80</td>
+                            <td>฿120</td>
+                            <td><span style="color:#F59E0B;font-weight:600">12</span></td>
+                            <td>50</td>
+                            <td><span class="badge badge-amber">⚡ Low</span></td>
+                            <td>
+                                <div class="flex gap-2"><button class="btn-ghost text-xs" onclick="openModal('modal-edit-product')">แก้ไข</button><button class="btn-danger text-xs">ลบ</button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag">P-0155</span></td>
+                            <td class="bold">จอมอนิเตอร์ 27" IPS 4K</td>
+                            <td>อุปกรณ์ IT</td>
+                            <td>฿7,500</td>
+                            <td>฿11,990</td>
+                            <td><span style="color:#C5F135;font-weight:600">28</span></td>
+                            <td>5</td>
+                            <td><span class="badge badge-green">✓ In Stock</span></td>
+                            <td>
+                                <div class="flex gap-2"><button class="btn-ghost text-xs" onclick="openModal('modal-edit-product')">แก้ไข</button><button class="btn-danger text-xs">ลบ</button></div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag">P-0201</span></td>
+                            <td class="bold">แฟ้มเอกสาร A4 (แพ็ค 10)</td>
+                            <td>เครื่องเขียน</td>
+                            <td>฿45</td>
+                            <td>฿75</td>
+                            <td><span style="color:#515a72;font-weight:600">0</span></td>
+                            <td>100</td>
+                            <td><span class="badge badge-gray">✗ หมด</span></td>
+                            <td>
+                                <div class="flex gap-2"><button class="btn-ghost text-xs" onclick="openModal('modal-edit-product')">แก้ไข</button><button class="btn-danger text-xs">ลบ</button></div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- Pagination -->
+            <div class="flex items-center justify-between mt-4" style="font-size:13px;color:#515a72">
+                <span>แสดง 1–5 จาก 1,284 รายการ</span>
+                <div class="flex gap-2">
+                    <button class="btn-ghost text-xs">← ก่อน</button>
+                    <button class="btn-primary text-xs">1</button>
+                    <button class="btn-ghost text-xs">2</button><button class="btn-ghost text-xs">3</button>
+                    <button class="btn-ghost text-xs">ถัดไป →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======== 3. STOCK IN ======== -->
+        <div id="page-stockin" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="font-syne font-800 text-2xl text-white">รับสินค้าเข้าคลัง</h1>
+                    <p style="font-size:13px;color:#515a72;margin-top:2px">บันทึกการรับสินค้าจาก Supplier</p>
+                </div>
+                <button class="btn-primary" onclick="openModal('modal-stockin')">+ บันทึกรับสินค้า</button>
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="grid gap-4 mb-5" style="grid-template-columns:repeat(3,1fr)">
+                <div class="metric-card">
+                    <div style="font-size:11px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">รับเข้าวันนี้</div>
+                    <div class="stat-num" style="color:#C5F135">12</div>
+                    <div style="font-size:12px;color:#7c8496;margin-top:4px">รายการ</div>
+                </div>
+                <div class="metric-card">
+                    <div style="font-size:11px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">มูลค่ารับเข้า (เดือนนี้)</div>
+                    <div class="stat-num">฿182K</div>
+                    <div style="font-size:12px;color:#7c8496;margin-top:4px">รวมทุก Supplier</div>
+                </div>
+                <div class="metric-card">
+                    <div style="font-size:11px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">PO รอรับ</div>
+                    <div class="stat-num" style="color:#F59E0B">5</div>
+                    <div style="font-size:12px;color:#7c8496;margin-top:4px">ใบสั่งซื้อ</div>
+                </div>
+            </div>
+
+            <div class="card" style="overflow-x:auto">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-ink-700">
+                    <span class="font-syne font-700 text-sm text-white">ประวัติการรับสินค้า</span>
+                    <input class="input text-sm" style="width:200px" placeholder="🔍 ค้นหา...">
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>เลขที่ใบรับ</th>
+                            <th>วันที่</th>
+                            <th>สินค้า</th>
+                            <th>เลขล็อต</th>
+                            <th>จำนวน</th>
+                            <th>Supplier</th>
+                            <th>วันหมดอายุ</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="bold">GR-20240601</td>
+                            <td>01/06/67</td>
+                            <td>คีย์บอร์ด Mechanical TKL</td>
+                            <td><span class="tag">LOT-A221</span></td>
+                            <td style="color:#C5F135;font-weight:600">+50</td>
+                            <td>Tech Distribution Co.</td>
+                            <td>—</td>
+                            <td><span class="badge badge-green">✓ สมบูรณ์</span></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">GR-20240602</td>
+                            <td>01/06/67</td>
+                            <td>กระดาษ A4 80gsm (รีม)</td>
+                            <td><span class="tag">LOT-B089</span></td>
+                            <td style="color:#C5F135;font-weight:600">+200</td>
+                            <td>Office Supply Ltd.</td>
+                            <td>12/2026</td>
+                            <td><span class="badge badge-green">✓ สมบูรณ์</span></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">GR-20240603</td>
+                            <td>02/06/67</td>
+                            <td>หมึกพิมพ์ Canon PG-88</td>
+                            <td><span class="tag">LOT-C441</span></td>
+                            <td style="color:#C5F135;font-weight:600">+30</td>
+                            <td>Print & Copy Center</td>
+                            <td>08/2025</td>
+                            <td><span class="badge badge-sky">⏳ รอตรวจสอบ</span></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">GR-20240604</td>
+                            <td>03/06/67</td>
+                            <td>เมาส์ไร้สาย Logitech MX</td>
+                            <td><span class="tag">LOT-A225</span></td>
+                            <td style="color:#C5F135;font-weight:600">+20</td>
+                            <td>Tech Distribution Co.</td>
+                            <td>—</td>
+                            <td><span class="badge badge-amber">⚡ รอรับ</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ======== 4. STOCK OUT ======== -->
+        <div id="page-stockout" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="font-syne font-800 text-2xl text-white">เบิกจ่ายสินค้า</h1>
+                    <p style="font-size:13px;color:#515a72;margin-top:2px">ตัดสต๊อกตามออเดอร์ / คำขอเบิก</p>
+                </div>
+                <button class="btn-primary" onclick="openModal('modal-stockout')">+ สร้างใบเบิก</button>
+            </div>
+
+            <!-- Filter tabs -->
+            <div class="flex gap-2 mb-5">
+                <button class="btn-primary text-xs">ทั้งหมด (37)</button>
+                <button class="btn-ghost text-xs">รอดำเนินการ (8)</button>
+                <button class="btn-ghost text-xs">กำลังจัดส่ง (12)</button>
+                <button class="btn-ghost text-xs">เสร็จสิ้น (17)</button>
+            </div>
+
+            <div class="card" style="overflow-x:auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>เลขออเดอร์</th>
+                            <th>วันที่</th>
+                            <th>รายการสินค้า</th>
+                            <th>จำนวน</th>
+                            <th>ผู้ขอเบิก</th>
+                            <th>แผนก</th>
+                            <th>สถานะ</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="bold">SO-2024-0881</td>
+                            <td>08/06/67</td>
+                            <td>คีย์บอร์ด Mechanical TKL</td>
+                            <td style="color:#F43F5E;font-weight:600">-5</td>
+                            <td>นิรันดร์ บุญมา</td>
+                            <td>IT</td>
+                            <td><span class="badge badge-amber">⏳ รอดำเนินการ</span></td>
+                            <td><button class="btn-ghost text-xs" onclick="alert('อนุมัติแล้ว')">อนุมัติ</button></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">SO-2024-0880</td>
+                            <td>07/06/67</td>
+                            <td>กระดาษ A4 80gsm</td>
+                            <td style="color:#F43F5E;font-weight:600">-10</td>
+                            <td>สมใจ แก้วสวย</td>
+                            <td>ธุรการ</td>
+                            <td><span class="badge badge-sky">🚚 กำลังจัดส่ง</span></td>
+                            <td><button class="btn-ghost text-xs" onclick="alert('ยืนยันรับสินค้า')">ยืนยันรับ</button></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">SO-2024-0879</td>
+                            <td>06/06/67</td>
+                            <td>จอมอนิเตอร์ 27" IPS 4K</td>
+                            <td style="color:#F43F5E;font-weight:600">-2</td>
+                            <td>ประสิทธิ์ สุขใจ</td>
+                            <td>บัญชี</td>
+                            <td><span class="badge badge-green">✓ เสร็จสิ้น</span></td>
+                            <td><button class="btn-ghost text-xs" onclick="alert('ดูใบเบิก')">ดูใบเบิก</button></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">SO-2024-0878</td>
+                            <td>05/06/67</td>
+                            <td>สาย HDMI 2m Premium</td>
+                            <td style="color:#F43F5E;font-weight:600">-3</td>
+                            <td>วิภา รักดี</td>
+                            <td>การตลาด</td>
+                            <td><span class="badge badge-green">✓ เสร็จสิ้น</span></td>
+                            <td><button class="btn-ghost text-xs" onclick="alert('ดูใบเบิก')">ดูใบเบิก</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ======== 5. SUPPLIER ======== -->
+        <div id="page-supplier" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="font-syne font-800 text-2xl text-white">จัดการ Supplier</h1>
+                    <p style="font-size:13px;color:#515a72;margin-top:2px">ข้อมูลคู่ค้าและประวัติการสั่งซื้อ</p>
+                </div>
+                <button class="btn-primary" onclick="openModal('modal-add-supplier')">+ เพิ่ม Supplier</button>
+            </div>
+
+            <div class="grid gap-4" style="grid-template-columns:repeat(2,1fr)">
+                <!-- Supplier Card 1 -->
+                <div class="card p-5">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <div class="font-syne font-700 text-white text-base">Tech Distribution Co.</div>
+                            <div style="font-size:12px;color:#515a72;margin-top:2px">อุปกรณ์ IT และอิเล็กทรอนิกส์</div>
+                        </div>
+                        <span class="badge badge-green">● Active</span>
+                    </div>
+                    <hr class="div">
+                    <div class="grid gap-2" style="grid-template-columns:1fr 1fr;font-size:12.5px">
+                        <div><span style="color:#515a72">ติดต่อ</span>
+                            <div style="color:#d4d7de;margin-top:2px">นาย สมชาย ใจดี</div>
+                        </div>
+                        <div><span style="color:#515a72">โทร</span>
+                            <div style="color:#d4d7de;margin-top:2px">02-123-4567</div>
+                        </div>
+                        <div><span style="color:#515a72">Email</span>
+                            <div style="color:#C5F135;margin-top:2px">sales@techco.th</div>
+                        </div>
+                        <div><span style="color:#515a72">เครดิต</span>
+                            <div style="color:#d4d7de;margin-top:2px">Net 30 วัน</div>
+                        </div>
+                        <div><span style="color:#515a72">ออเดอร์ทั้งหมด</span>
+                            <div style="color:#d4d7de;margin-top:2px">48 ครั้ง</div>
+                        </div>
+                        <div><span style="color:#515a72">มูลค่ารวม</span>
+                            <div style="color:#C5F135;margin-top:2px">฿1.2M</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button class="btn-ghost text-xs" onclick="openModal('modal-edit-supplier')">แก้ไข</button>
+                        <button class="btn-ghost text-xs" onclick="alert('ดูประวัติออเดอร์')">ประวัติออเดอร์</button>
+                        <button class="btn-primary text-xs" onclick="alert('สร้าง PO')">+ สร้าง PO</button>
+                    </div>
+                </div>
+
+                <!-- Supplier Card 2 -->
+                <div class="card p-5">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <div class="font-syne font-700 text-white text-base">Office Supply Ltd.</div>
+                            <div style="font-size:12px;color:#515a72;margin-top:2px">เครื่องเขียนและอุปกรณ์สำนักงาน</div>
+                        </div>
+                        <span class="badge badge-green">● Active</span>
+                    </div>
+                    <hr class="div">
+                    <div class="grid gap-2" style="grid-template-columns:1fr 1fr;font-size:12.5px">
+                        <div><span style="color:#515a72">ติดต่อ</span>
+                            <div style="color:#d4d7de;margin-top:2px">นาง สุภา วงษ์ทอง</div>
+                        </div>
+                        <div><span style="color:#515a72">โทร</span>
+                            <div style="color:#d4d7de;margin-top:2px">02-987-6543</div>
+                        </div>
+                        <div><span style="color:#515a72">Email</span>
+                            <div style="color:#C5F135;margin-top:2px">info@officesup.th</div>
+                        </div>
+                        <div><span style="color:#515a72">เครดิต</span>
+                            <div style="color:#d4d7de;margin-top:2px">Net 45 วัน</div>
+                        </div>
+                        <div><span style="color:#515a72">ออเดอร์ทั้งหมด</span>
+                            <div style="color:#d4d7de;margin-top:2px">31 ครั้ง</div>
+                        </div>
+                        <div><span style="color:#515a72">มูลค่ารวม</span>
+                            <div style="color:#C5F135;margin-top:2px">฿380K</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button class="btn-ghost text-xs" onclick="openModal('modal-edit-supplier')">แก้ไข</button>
+                        <button class="btn-ghost text-xs" onclick="alert('ดูประวัติออเดอร์')">ประวัติออเดอร์</button>
+                        <button class="btn-primary text-xs" onclick="alert('สร้าง PO')">+ สร้าง PO</button>
+                    </div>
+                </div>
+
+                <!-- Supplier Card 3 -->
+                <div class="card p-5">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <div class="font-syne font-700 text-white text-base">Print & Copy Center</div>
+                            <div style="font-size:12px;color:#515a72;margin-top:2px">หมึกพิมพ์และอุปกรณ์การพิมพ์</div>
+                        </div>
+                        <span class="badge badge-amber">⚡ ค้างชำระ</span>
+                    </div>
+                    <hr class="div">
+                    <div class="grid gap-2" style="grid-template-columns:1fr 1fr;font-size:12.5px">
+                        <div><span style="color:#515a72">ติดต่อ</span>
+                            <div style="color:#d4d7de;margin-top:2px">นาย วีรพล รักสนุก</div>
+                        </div>
+                        <div><span style="color:#515a72">โทร</span>
+                            <div style="color:#d4d7de;margin-top:2px">081-234-5678</div>
+                        </div>
+                        <div><span style="color:#515a72">Email</span>
+                            <div style="color:#C5F135;margin-top:2px">print@pcenter.th</div>
+                        </div>
+                        <div><span style="color:#515a72">เครดิต</span>
+                            <div style="color:#d4d7de;margin-top:2px">Net 15 วัน</div>
+                        </div>
+                        <div><span style="color:#515a72">ออเดอร์ทั้งหมด</span>
+                            <div style="color:#d4d7de;margin-top:2px">19 ครั้ง</div>
+                        </div>
+                        <div><span style="color:#F59E0B">ค้างชำระ</span>
+                            <div style="color:#F59E0B;margin-top:2px">฿23,500</div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button class="btn-ghost text-xs">แก้ไข</button>
+                        <button class="btn-ghost text-xs">ประวัติออเดอร์</button>
+                        <button class="btn-danger text-xs">ระงับ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======== 6. STOCK ADJUSTMENT ======== -->
+        <div id="page-adjust" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="font-syne font-800 text-2xl text-white">ปรับสต๊อก</h1>
+                    <p style="font-size:13px;color:#515a72;margin-top:2px">สำหรับกรณีสินค้าชำรุด สูญหาย หรือผลนับจริงไม่ตรง</p>
+                </div>
+                <button class="btn-primary" onclick="openModal('modal-adjust')">+ ปรับปรุงสต๊อก</button>
+            </div>
+
+            <div class="alert-bar mb-5" style="background:#F43F5E18;border-color:#F43F5E44;color:#FFE4E6">
+                <svg width="16" height="16" fill="none" stroke="#F43F5E" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg> การปรับสต๊อกทุกครั้งจะถูกบันทึกและต้องได้รับการอนุมัติจาก
+                Admin ก่อนมีผล
+            </div>
+
+            <div class="card" style="overflow-x:auto">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-ink-700">
+                    <span class="font-syne font-700 text-sm text-white">ประวัติการปรับสต๊อก</span>
+                    <div class="flex gap-3">
+                        <select class="input text-sm"><option>ทุกประเภท</option><option>ชำรุด</option><option>สูญหาย</option><option>นับสต๊อก</option></select>
+                        <input class="input text-sm" style="width:160px" placeholder="🔍 ค้นหา...">
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>เลขที่</th>
+                            <th>วันที่</th>
+                            <th>สินค้า</th>
+                            <th>จำนวนระบบ</th>
+                            <th>จำนวนจริง</th>
+                            <th>ผลต่าง</th>
+                            <th>สาเหตุ</th>
+                            <th>ผู้ดำเนินการ</th>
+                            <th>สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="bold">ADJ-0041</td>
+                            <td>05/06/67</td>
+                            <td>คีย์บอร์ด Mechanical</td>
+                            <td>150</td>
+                            <td>142</td>
+                            <td style="color:#F43F5E;font-weight:600">-8</td>
+                            <td><span class="badge badge-red">สูญหาย</span></td>
+                            <td>สมชาย ก.</td>
+                            <td><span class="badge badge-green">✓ อนุมัติ</span></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">ADJ-0040</td>
+                            <td>03/06/67</td>
+                            <td>หมึกพิมพ์ Canon</td>
+                            <td>10</td>
+                            <td>8</td>
+                            <td style="color:#F43F5E;font-weight:600">-2</td>
+                            <td><span class="badge badge-amber">ชำรุด</span></td>
+                            <td>นิภา ว.</td>
+                            <td><span class="badge badge-sky">⏳ รออนุมัติ</span></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">ADJ-0039</td>
+                            <td>01/06/67</td>
+                            <td>กระดาษ A4 80gsm</td>
+                            <td>200</td>
+                            <td>210</td>
+                            <td style="color:#C5F135;font-weight:600">+10</td>
+                            <td><span class="badge badge-sky">นับสต๊อก</span></td>
+                            <td>วรรณา ส.</td>
+                            <td><span class="badge badge-green">✓ อนุมัติ</span></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">ADJ-0038</td>
+                            <td>28/05/67</td>
+                            <td>สาย HDMI 2m</td>
+                            <td>5</td>
+                            <td>4</td>
+                            <td style="color:#F43F5E;font-weight:600">-1</td>
+                            <td><span class="badge badge-red">ชำรุด</span></td>
+                            <td>อนุชา ม.</td>
+                            <td><span class="badge badge-red">✗ ปฏิเสธ</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ======== 7. REPORTS ======== -->
+        <div id="page-reports" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="font-syne font-800 text-2xl text-white">รายงาน & วิเคราะห์</h1>
+                    <p style="font-size:13px;color:#515a72;margin-top:2px">สรุปข้อมูลเชิงลึกของระบบสต๊อก</p>
+                </div>
+                <div class="flex gap-3">
+                    <select class="input text-sm"><option>เดือนนี้</option><option>ไตรมาสนี้</option><option>ปีนี้</option></select>
+                    <button class="btn-primary" onclick="alert('Export Report')">↓ Export PDF</button>
+                </div>
+            </div>
+
+            <!-- Report Tabs -->
+            <div class="flex gap-2 mb-5">
+                <button id="rtab-1" class="btn-primary text-xs" onclick="switchReportTab(1)">สินค้าขายดี</button>
+                <button id="rtab-2" class="btn-ghost text-xs" onclick="switchReportTab(2)">มูลค่าคงคลัง</button>
+                <button id="rtab-3" class="btn-ghost text-xs" onclick="switchReportTab(3)">Stock Movement</button>
+            </div>
+
+            <div id="report-1">
+                <div class="grid gap-4 mb-4" style="grid-template-columns:2fr 1fr">
+                    <div class="card p-5">
+                        <div class="font-syne font-700 text-sm text-white mb-4">Top 5 สินค้าขายดีที่สุด (เดือนมิ.ย.)</div>
+                        <canvas id="chartTopProducts" height="200"></canvas>
+                    </div>
+                    <div class="card p-5">
+                        <div class="font-syne font-700 text-sm text-white mb-4">Turnover Rate ตามหมวด</div>
+                        <div class="space-y-4 mt-2">
+                            <div>
+                                <div class="flex justify-between text-xs mb-1"><span style="color:#a8aeba">อุปกรณ์ IT</span><span style="color:#C5F135">4.2x</span></div>
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width:84%;background:#C5F135"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1"><span style="color:#a8aeba">เครื่องเขียน</span><span style="color:#38BDF8">3.1x</span></div>
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width:62%;background:#38BDF8"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1"><span style="color:#a8aeba">เฟอร์นิเจอร์</span><span style="color:#F59E0B">1.8x</span></div>
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width:36%;background:#F59E0B"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex justify-between text-xs mb-1"><span style="color:#a8aeba">สินค้าทั่วไป</span><span style="color:#7c8496">0.9x</span></div>
+                                <div class="progress-track">
+                                    <div class="progress-fill" style="width:18%;background:#515a72"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card" style="overflow-x:auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>อันดับ</th>
+                                <th>SKU</th>
+                                <th>ชื่อสินค้า</th>
+                                <th>ยอดขาย (ชิ้น)</th>
+                                <th>มูลค่าขาย</th>
+                                <th>กำไรรวม</th>
+                                <th>% Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="color:#C5F135;font-weight:800;font-family:'Syne',sans-serif">#1</td>
+                                <td class="tag">P-0001</td>
+                                <td class="bold">คีย์บอร์ด Mechanical TKL</td>
+                                <td>284</td>
+                                <td>฿366,360</td>
+                                <td>฿124,320</td>
+                                <td><span class="badge badge-green">33.9%</span></td>
+                            </tr>
+                            <tr>
+                                <td style="color:#7c8496;font-weight:800;font-family:'Syne',sans-serif">#2</td>
+                                <td class="tag">P-0155</td>
+                                <td class="bold">จอมอนิเตอร์ 27" IPS 4K</td>
+                                <td>92</td>
+                                <td>฿1,103,080</td>
+                                <td>฿414,640</td>
+                                <td><span class="badge badge-green">37.6%</span></td>
+                            </tr>
+                            <tr>
+                                <td style="color:#F59E0B;font-weight:800;font-family:'Syne',sans-serif">#3</td>
+                                <td class="tag">P-0108</td>
+                                <td class="bold">กระดาษ A4 80gsm</td>
+                                <td>1,240</td>
+                                <td>฿148,800</td>
+                                <td>฿49,600</td>
+                                <td><span class="badge badge-amber">33.3%</span></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="report-2" style="display:none">
+                <div class="grid gap-4 mb-4" style="grid-template-columns:repeat(3,1fr)">
+                    <div class="metric-card">
+                        <div style="font-size:11px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">มูลค่าสินค้าทั้งหมด</div>
+                        <div class="stat-num">฿4.2M</div>
+                    </div>
+                    <div class="metric-card">
+                        <div style="font-size:11px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">ต้นทุนสินค้าค้างสต๊อก</div>
+                        <div class="stat-num">฿2.8M</div>
+                    </div>
+                    <div class="metric-card">
+                        <div style="font-size:11px;color:#515a72;font-family:'Syne',sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:6px">สินค้าหมดอายุใน 90 วัน</div>
+                        <div class="stat-num" style="color:#F59E0B">14</div>
+                    </div>
+                </div>
+                <div class="card p-5">
+                    <div class="font-syne font-700 text-sm text-white mb-4">มูลค่าสินค้าคงคลังตามหมวดหมู่</div><canvas id="chartValue" height="180"></canvas></div>
+            </div>
+
+            <div id="report-3" style="display:none">
+                <div class="card" style="overflow-x:auto">
+                    <div class="flex items-center justify-between px-5 py-4 border-b border-ink-700">
+                        <span class="font-syne font-700 text-sm text-white">Stock Movement Log</span>
+                        <input class="input text-sm" style="width:200px" placeholder="🔍 ค้นหา SKU...">
+                    </div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>วันที่/เวลา</th>
+                                <th>SKU</th>
+                                <th>สินค้า</th>
+                                <th>ประเภท</th>
+                                <th>จำนวน</th>
+                                <th>คงเหลือหลังทำรายการ</th>
+                                <th>Reference</th>
+                                <th>ผู้ดำเนินการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>08/06/67 09:14</td>
+                                <td class="tag">P-0001</td>
+                                <td class="bold">คีย์บอร์ด Mechanical</td>
+                                <td><span class="badge badge-green">↓ Stock In</span></td>
+                                <td style="color:#C5F135">+50</td>
+                                <td>142</td>
+                                <td>GR-20240601</td>
+                                <td>วรรณา ส.</td>
+                            </tr>
+                            <tr>
+                                <td>07/06/67 14:22</td>
+                                <td class="tag">P-0042</td>
+                                <td class="bold">เมาส์ไร้สาย</td>
+                                <td><span class="badge badge-red">↑ Stock Out</span></td>
+                                <td style="color:#F43F5E">-5</td>
+                                <td>3</td>
+                                <td>SO-2024-0880</td>
+                                <td>นิภา ว.</td>
+                            </tr>
+                            <tr>
+                                <td>05/06/67 11:05</td>
+                                <td class="tag">P-0001</td>
+                                <td class="bold">คีย์บอร์ด Mechanical</td>
+                                <td><span class="badge badge-amber">✎ Adjust</span></td>
+                                <td style="color:#F43F5E">-8</td>
+                                <td>92</td>
+                                <td>ADJ-0041</td>
+                                <td>สมชาย ก.</td>
+                            </tr>
+                            <tr>
+                                <td>03/06/67 16:40</td>
+                                <td class="tag">P-0108</td>
+                                <td class="bold">กระดาษ A4 80gsm</td>
+                                <td><span class="badge badge-green">↓ Stock In</span></td>
+                                <td style="color:#C5F135">+200</td>
+                                <td>210</td>
+                                <td>GR-20240602</td>
+                                <td>วรรณา ส.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ======== 8. USERS ======== -->
+        <div id="page-users" class="page">
+            <div class="flex items-center justify-between mb-6">
+                <div>
+                    <h1 class="font-syne font-800 text-2xl text-white">จัดการสิทธิ์ผู้ใช้</h1>
+                    <p style="font-size:13px;color:#515a72;margin-top:2px">กำหนด Role และการเข้าถึงแต่ละหน้า</p>
+                </div>
+                <button class="btn-primary" onclick="openModal('modal-add-user')">+ เพิ่มผู้ใช้</button>
+            </div>
+
+            <!-- Permission Matrix -->
+            <div class="card mb-5" style="overflow-x:auto">
+                <div class="px-5 py-4 border-b border-ink-700">
+                    <span class="font-syne font-700 text-sm text-white">Permission Matrix</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>หน้า / ฟังก์ชัน</th>
+                            <th style="color:#C5F135">Super Admin</th>
+                            <th style="color:#38BDF8">Admin</th>
+                            <th style="color:#F59E0B">คลังสินค้า</th>
+                            <th style="color:#a8aeba">ฝ่ายขาย</th>
+                            <th style="color:#515a72">Read Only</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="bold">Dashboard</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>⚡ บางส่วน</td>
+                            <td>⚡ บางส่วน</td>
+                            <td>👁 ดูอย่างเดียว</td>
+                        </tr>
+                        <tr>
+                            <td class="bold">สินค้าคงคลัง</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>👁 ดูอย่างเดียว</td>
+                            <td>👁 ดูอย่างเดียว</td>
+                        </tr>
+                        <tr>
+                            <td class="bold">รับสินค้าเข้า</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                        </tr>
+                        <tr>
+                            <td class="bold">เบิกจ่ายสินค้า</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>⚡ สร้างใบขอ</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                        </tr>
+                        <tr>
+                            <td class="bold">ปรับสต๊อก</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ อนุมัติ</td>
+                            <td>⚡ ขอปรับ</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                        </tr>
+                        <tr>
+                            <td class="bold">Supplier</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>👁 ดูอย่างเดียว</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                        </tr>
+                        <tr>
+                            <td class="bold">รายงาน</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>⚡ บางรายงาน</td>
+                            <td>⚡ บางรายงาน</td>
+                            <td>👁 ดูอย่างเดียว</td>
+                        </tr>
+                        <tr>
+                            <td class="bold">จัดการสิทธิ์</td>
+                            <td>✅ ทั้งหมด</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                            <td>❌ ไม่มีสิทธิ์</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- User List -->
+            <div class="card" style="overflow-x:auto">
+                <div class="flex items-center justify-between px-5 py-4 border-b border-ink-700">
+                    <span class="font-syne font-700 text-sm text-white">รายชื่อผู้ใช้งาน</span>
+                    <input class="input text-sm" style="width:200px" placeholder="🔍 ค้นหาผู้ใช้...">
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>แผนก</th>
+                            <th>เข้าใช้ล่าสุด</th>
+                            <th>สถานะ</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="bold">สมศักดิ์ จันทรา</td>
+                            <td style="color:#C5F135">somsak@co.th</td>
+                            <td><span class="badge badge-green">Super Admin</span></td>
+                            <td>IT</td>
+                            <td>08/06/67 09:12</td>
+                            <td><span class="badge badge-green">● Online</span></td>
+                            <td><button class="btn-ghost text-xs">แก้ไข</button></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">นิภา วงษ์ทอง</td>
+                            <td style="color:#C5F135">nipa@co.th</td>
+                            <td><span class="badge badge-sky">คลังสินค้า</span></td>
+                            <td>Warehouse</td>
+                            <td>08/06/67 08:55</td>
+                            <td><span class="badge badge-green">● Online</span></td>
+                            <td><button class="btn-ghost text-xs">แก้ไข</button></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">วรรณา สุขสม</td>
+                            <td style="color:#C5F135">wanna@co.th</td>
+                            <td><span class="badge badge-sky">คลังสินค้า</span></td>
+                            <td>Warehouse</td>
+                            <td>07/06/67 17:30</td>
+                            <td><span class="badge badge-gray">● Offline</span></td>
+                            <td><button class="btn-ghost text-xs">แก้ไข</button></td>
+                        </tr>
+                        <tr>
+                            <td class="bold">อนุชา มงคล</td>
+                            <td style="color:#C5F135">anucha@co.th</td>
+                            <td><span class="badge badge-amber">ฝ่ายขาย</span></td>
+                            <td>Sales</td>
+                            <td>06/06/67 14:20</td>
+                            <td><span class="badge badge-gray">● Offline</span></td>
+                            <td><button class="btn-ghost text-xs">แก้ไข</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- Add Product -->
+    <div id="modal-add-product" class="modal-overlay" onclick="closeModalOutside(event,'modal-add-product')">
+        <div class="modal">
+            <div class="modal-title">+ เพิ่มสินค้าใหม่</div>
+            <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">SKU *</label><input class="input w-full" placeholder="P-XXXX"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ชื่อสินค้า *</label><input class="input w-full" placeholder="ชื่อสินค้า"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">หมวดหมู่</label><select class="input w-full"><option>อุปกรณ์ IT</option><option>เครื่องเขียน</option><option>เฟอร์นิเจอร์</option></select></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">หน่วย</label><input class="input w-full" placeholder="ชิ้น / กล่อง / รีม"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ราคาต้นทุน (฿)</label><input class="input w-full" type="number" placeholder="0.00"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ราคาขาย (฿)</label><input class="input w-full" type="number" placeholder="0.00"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">จำนวนเริ่มต้น</label><input class="input w-full" type="number" placeholder="0"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">Reorder Point</label><input class="input w-full" type="number" placeholder="0"></div>
+            </div>
+            <div class="mt-4"><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">Supplier</label><select class="input w-full"><option>Tech Distribution Co.</option><option>Office Supply Ltd.</option><option>Print & Copy Center</option></select></div>
+            <div class="mt-4"><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">หมายเหตุ</label><textarea class="input w-full" rows="2" placeholder="หมายเหตุเพิ่มเติม..." style="resize:none"></textarea></div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button class="btn-ghost" onclick="closeModal('modal-add-product')">ยกเลิก</button>
+                <button class="btn-primary" onclick="alert('บันทึกสินค้าใหม่แล้ว');closeModal('modal-add-product')">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Product -->
+    <div id="modal-edit-product" class="modal-overlay" onclick="closeModalOutside(event,'modal-edit-product')">
+        <div class="modal">
+            <div class="modal-title">✎ แก้ไขข้อมูลสินค้า</div>
+            <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">SKU</label><input class="input w-full" value="P-0001" readonly style="opacity:.6"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ชื่อสินค้า</label><input class="input w-full" value="คีย์บอร์ด Mechanical TKL"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ราคาต้นทุน (฿)</label><input class="input w-full" type="number" value="850"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ราคาขาย (฿)</label><input class="input w-full" type="number" value="1290"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">Reorder Point</label><input class="input w-full" type="number" value="30"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">หมวดหมู่</label><select class="input w-full"><option selected>อุปกรณ์ IT</option></select></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button class="btn-ghost" onclick="closeModal('modal-edit-product')">ยกเลิก</button>
+                <button class="btn-primary" onclick="alert('บันทึกแล้ว');closeModal('modal-edit-product')">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock In -->
+    <div id="modal-stockin" class="modal-overlay" onclick="closeModalOutside(event,'modal-stockin')">
+        <div class="modal">
+            <div class="modal-title">↓ บันทึกรับสินค้าเข้าคลัง</div>
+            <div class="grid gap-4">
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">Supplier</label><select class="input w-full"><option>Tech Distribution Co.</option><option>Office Supply Ltd.</option></select></div>
+                <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">สินค้า (SKU)</label><input class="input w-full" placeholder="พิมพ์ SKU หรือชื่อ..."></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">จำนวนรับ *</label><input class="input w-full" type="number" placeholder="0"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">เลขล็อต</label><input class="input w-full" placeholder="LOT-XXXX"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">วันหมดอายุ</label><input class="input w-full" type="date"></div>
+                </div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ราคาต้นทุนต่อหน่วย (฿)</label><input class="input w-full" type="number" placeholder="0.00"></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">หมายเหตุ</label><textarea class="input w-full" rows="2" style="resize:none"></textarea></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button class="btn-ghost" onclick="closeModal('modal-stockin')">ยกเลิก</button>
+                <button class="btn-primary" onclick="alert('บันทึกรับสินค้าแล้ว — สต๊อกอัปเดตแล้ว');closeModal('modal-stockin')">บันทึกรับสินค้า</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Out -->
+    <div id="modal-stockout" class="modal-overlay" onclick="closeModalOutside(event,'modal-stockout')">
+        <div class="modal">
+            <div class="modal-title">↑ สร้างใบเบิกสินค้า</div>
+            <div class="grid gap-4">
+                <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ผู้ขอเบิก</label><input class="input w-full" placeholder="ชื่อผู้ขอเบิก"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">แผนก</label><select class="input w-full"><option>IT</option><option>ธุรการ</option><option>บัญชี</option><option>การตลาด</option></select></div>
+                </div>
+                <div class="grid gap-4" style="grid-template-columns:2fr 1fr">
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">สินค้า (SKU/ชื่อ)</label><input class="input w-full" placeholder="ค้นหาสินค้า..."></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">จำนวน</label><input class="input w-full" type="number" placeholder="0"></div>
+                </div>
+                <div class="alert-bar" style="padding:10px 14px"><svg width="14" height="14" fill="none" stroke="#F59E0B" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg><span style="font-size:12px">ระบบจะตัดสต๊อกอัตโนมัติเมื่อ Admin อนุมัติ</span></div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">วัตถุประสงค์</label><textarea class="input w-full" rows="2" style="resize:none" placeholder="ระบุวัตถุประสงค์การเบิก..."></textarea></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button class="btn-ghost" onclick="closeModal('modal-stockout')">ยกเลิก</button>
+                <button class="btn-primary" onclick="alert('ส่งใบเบิกแล้ว รอการอนุมัติ');closeModal('modal-stockout')">ส่งใบเบิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Adjust -->
+    <div id="modal-adjust" class="modal-overlay" onclick="closeModalOutside(event,'modal-adjust')">
+        <div class="modal">
+            <div class="modal-title">✎ ปรับปรุงสต๊อก</div>
+            <div class="grid gap-4">
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">สินค้า</label><input class="input w-full" placeholder="ค้นหา SKU หรือชื่อสินค้า..."></div>
+                <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">จำนวนในระบบ</label><input class="input w-full" readonly value="150" style="opacity:.6"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">จำนวนจริง *</label><input class="input w-full" type="number" placeholder="0"></div>
+                </div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">สาเหตุ *</label>
+                    <select class="input w-full">
+          <option>-- เลือกสาเหตุ --</option>
+          <option>สินค้าชำรุด</option>
+          <option>สินค้าสูญหาย</option>
+          <option>ผลนับสต๊อกไม่ตรง</option>
+          <option>คืนสินค้า</option>
+          <option>อื่นๆ</option>
+        </select>
+                </div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">หมายเหตุ / รายละเอียด *</label><textarea class="input w-full" rows="3" style="resize:none" placeholder="อธิบายรายละเอียดการปรับ..."></textarea></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button class="btn-ghost" onclick="closeModal('modal-adjust')">ยกเลิก</button>
+                <button class="btn-primary" onclick="alert('ส่งคำขอปรับสต๊อกแล้ว รอ Admin อนุมัติ');closeModal('modal-adjust')">ส่งคำขอ</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Supplier -->
+    <div id="modal-add-supplier" class="modal-overlay" onclick="closeModalOutside(event,'modal-add-supplier')">
+        <div class="modal">
+            <div class="modal-title">+ เพิ่ม Supplier</div>
+            <div class="grid gap-4">
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ชื่อบริษัท *</label><input class="input w-full" placeholder="ชื่อบริษัท / ร้านค้า"></div>
+                <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ชื่อผู้ติดต่อ</label><input class="input w-full" placeholder="ชื่อ-นามสกุล"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">โทรศัพท์</label><input class="input w-full" placeholder="0X-XXXX-XXXX"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">Email</label><input class="input w-full" placeholder="email@example.com"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">เงื่อนไขเครดิต</label><select class="input w-full"><option>Cash</option><option>Net 15 วัน</option><option>Net 30 วัน</option><option>Net 45 วัน</option></select></div>
+                </div>
+                <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ประเภทสินค้าที่จัดหา</label><input class="input w-full" placeholder="เช่น อุปกรณ์ IT, เครื่องเขียน"></div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button class="btn-ghost" onclick="closeModal('modal-add-supplier')">ยกเลิก</button>
+                <button class="btn-primary" onclick="alert('เพิ่ม Supplier แล้ว');closeModal('modal-add-supplier')">บันทึก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User -->
+    <div id="modal-add-user" class="modal-overlay" onclick="closeModalOutside(event,'modal-add-user')">
+        <div class="modal">
+            <div class="modal-title">+ เพิ่มผู้ใช้งาน</div>
+            <div class="grid gap-4">
+                <div class="grid gap-4" style="grid-template-columns:1fr 1fr">
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ชื่อ-นามสกุล *</label><input class="input w-full" placeholder="ชื่อ นามสกุล"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">Email *</label><input class="input w-full" placeholder="email@co.th"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">Role *</label>
+                        <select class="input w-full">
+            <option>Super Admin</option><option>Admin</option><option>คลังสินค้า</option><option>ฝ่ายขาย</option><option>Read Only</option>
+          </select>
+                    </div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">แผนก</label><input class="input w-full" placeholder="ชื่อแผนก"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">รหัสผ่านเริ่มต้น</label><input class="input w-full" type="password" placeholder="••••••••"></div>
+                    <div><label style="font-size:12px;color:#515a72;display:block;margin-bottom:4px">ยืนยันรหัสผ่าน</label><input class="input w-full" type="password" placeholder="••••••••"></div>
+                </div>
+            </div>
+            <div class="flex justify-end gap-3 mt-6">
+                <button class="btn-ghost" onclick="closeModal('modal-add-user')">ยกเลิก</button>
+                <button class="btn-primary" onclick="alert('สร้างผู้ใช้แล้ว — ส่งรหัสทาง Email');closeModal('modal-add-user')">สร้างบัญชี</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== SCRIPTS ==================== -->
+    <script>
+        // Navigation
+        function gotoPage(name, el) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + name).classList.add('active');
+            if (el) el.classList.add('active');
+            if (name === 'dashboard') setTimeout(initCharts, 100);
+            if (name === 'reports') setTimeout(initReportCharts, 100);
+        }
+
+        // Modals
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+        }
+
+        function closeModalOutside(e, id) {
+            if (e.target.id === id) closeModal(id);
+        }
+
+        // Report Tabs
+        function switchReportTab(n) {
+            [1, 2, 3].forEach(i => {
+                document.getElementById('report-' + i).style.display = i === n ? 'block' : 'none';
+                const btn = document.getElementById('rtab-' + i);
+                if (i === n) {
+                    btn.classList.remove('btn-ghost');
+                    btn.classList.add('btn-primary');
+                } else {
+                    btn.classList.remove('btn-primary');
+                    btn.classList.add('btn-ghost');
+                }
+            });
+            if (n === 2) setTimeout(() => initValueChart(), 50);
+            if (n === 3) {} // log table already rendered
+        }
+
+        // Charts
+        const chartDefaults = {
+            color: 'rgba(197,241,53,',
+            gridColor: '#1e2538',
+            textColor: '#515a72',
+            font: 'DM Sans'
+        };
+
+        let chartsInit = false;
+
+        function initCharts() {
+            if (chartsInit) return;
+            chartsInit = true;
+
+            // Movement Chart
+            const ctx1 = document.getElementById('chartMovement').getContext('2d');
+            const labels = Array.from({
+                length: 30
+            }, (_, i) => {
+                const d = new Date();
+                d.setDate(d.getDate() - 29 + i);
+                return (d.getDate()) + '/' + (d.getMonth() + 1);
+            });
+            new Chart(ctx1, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [{
+                        label: 'Stock In',
+                        data: labels.map(() => Math.floor(Math.random() * 60 + 20)),
+                        borderColor: '#C5F135',
+                        backgroundColor: 'rgba(197,241,53,.08)',
+                        tension: .4,
+                        fill: true,
+                        pointRadius: 0
+                    }, {
+                        label: 'Stock Out',
+                        data: labels.map(() => Math.floor(Math.random() * 50 + 15)),
+                        borderColor: '#38BDF8',
+                        backgroundColor: 'rgba(56,189,248,.06)',
+                        tension: .4,
+                        fill: true,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#7c8496',
+                                font: {
+                                    family: 'DM Sans',
+                                    size: 11
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: {
+                                color: '#1e2538'
+                            },
+                            ticks: {
+                                color: '#515a72',
+                                font: {
+                                    size: 10
+                                },
+                                maxTicksLimit: 8
+                            }
+                        },
+                        y: {
+                            grid: {
+                                color: '#1e2538'
+                            },
+                            ticks: {
+                                color: '#515a72',
+                                font: {
+                                    size: 10
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Category Donut
+            const ctx2 = document.getElementById('chartCategory').getContext('2d');
+            new Chart(ctx2, {
+                type: 'doughnut',
+                data: {
+                    labels: ['อุปกรณ์ IT', 'เครื่องเขียน', 'เฟอร์นิเจอร์', 'อื่นๆ'],
+                    datasets: [{
+                        data: [45, 28, 15, 12],
+                        backgroundColor: ['#C5F135', '#38BDF8', '#F59E0B', '#31394f'],
+                        borderWidth: 0,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                color: '#7c8496',
+                                font: {
+                                    family: 'DM Sans',
+                                    size: 11
+                                },
+                                padding: 12
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        let reportChartsInit = {};
+
+        function initReportCharts() {
+            if (!reportChartsInit['top']) {
+                reportChartsInit['top'] = true;
+                const ctx = document.getElementById('chartTopProducts').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['คีย์บอร์ด', 'จอมอนิเตอร์', 'กระดาษ A4', 'เมาส์ไร้สาย', 'สาย HDMI'],
+                        datasets: [{
+                            label: 'ยอดขาย (ชิ้น)',
+                            data: [284, 92, 1240, 180, 310],
+                            backgroundColor: ['#C5F135', '#38BDF8', '#F59E0B', '#C5F13580', '#38BDF880'],
+                            borderRadius: 6,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#515a72',
+                                    font: {
+                                        size: 10
+                                    }
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: '#1e2538'
+                                },
+                                ticks: {
+                                    color: '#515a72',
+                                    font: {
+                                        size: 10
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function initValueChart() {
+            if (!reportChartsInit['val']) {
+                reportChartsInit['val'] = true;
+                const ctx = document.getElementById('chartValue').getContext('2d');
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: ['อุปกรณ์ IT', 'เครื่องเขียน', 'เฟอร์นิเจอร์', 'อื่นๆ'],
+                        datasets: [{
+                            label: 'มูลค่า (฿)',
+                            data: [2800000, 420000, 750000, 230000],
+                            backgroundColor: ['#C5F135', '#38BDF8', '#F59E0B', '#515a72'],
+                            borderRadius: 8,
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: {
+                                    display: false
+                                },
+                                ticks: {
+                                    color: '#515a72'
+                                }
+                            },
+                            y: {
+                                grid: {
+                                    color: '#1e2538'
+                                },
+                                ticks: {
+                                    color: '#515a72',
+                                    callback: (v) => '฿' + (v / 1000) + 'K'
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Init charts on load
+        setTimeout(initCharts, 200);
+    </script>
+
+</body>
+
+</html>
